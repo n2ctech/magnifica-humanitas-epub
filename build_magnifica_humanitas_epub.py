@@ -15,7 +15,7 @@ from urllib.parse import urljoin
 
 from lxml import etree, html
 from PIL import Image, ImageDraw, ImageFont
-
+import sys
 
 LANGUAGE_CONFIGS = {
     "en": {
@@ -316,17 +316,71 @@ def build_content_fragments(content: etree._Element, id_map: dict[str, str], toc
 
 
 def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    candidates = [
-        "/System/Library/Fonts/Supplemental/Georgia Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Georgia.ttf",
-        "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
-        "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf",
-    ]
-    for candidate in candidates:
-        path = Path(candidate)
+    for path in _font_candidates(bold):
         if path.exists():
             return ImageFont.truetype(str(path), size=size)
     return ImageFont.load_default()
 
+def _font_candidates(bold: bool) -> list[Path]:
+    match sys.platform:
+        case "darwin":
+            base = Path("/System/Library/Fonts/Supplemental")
+            names = [
+                "Georgia Bold.ttf" if bold else "Georgia.ttf",
+                "Times New Roman Bold.ttf" if bold else "Times New Roman.ttf",
+                "Arial Bold.ttf" if bold else "Arial.ttf",
+            ]
+            return [base / n for n in names]
+
+        case "win32":
+            base = Path("C:/Windows/Fonts")
+            names = [
+                "georgiab.ttf" if bold else "georgia.ttf",
+                "timesbd.ttf"  if bold else "times.ttf",
+                "arialbd.ttf"  if bold else "arial.ttf",
+            ]
+            return [base / n for n in names]
+
+        case _:  # Linux and other Unix-likes
+            return _linux_font_candidates(bold)
+
+
+def _linux_font_candidates(bold: bool) -> list[Path]:
+    weight = "Bold" if bold else "Regular"
+
+    # Ordered from most to least specific
+    search_dirs = [
+        Path("/usr/share/fonts/truetype/msttcorefonts"),  # ttf-mscorefonts-installer
+        Path("/usr/share/fonts/truetype/liberation"),      # common free substitute
+        Path("/usr/share/fonts/truetype/freefont"),
+        Path("/usr/share/fonts/truetype"),
+        Path("/usr/share/fonts"),
+        Path.home() / ".local/share/fonts",
+        Path.home() / ".fonts",
+    ]
+
+    # Each tuple: (msttcorefonts-style name, Liberation equivalent, FreeFonts equivalent)
+    name_groups = [
+        (
+            "georgiab.ttf"           if bold else "georgia.ttf",
+            f"LiberationSerif-{weight}.ttf",
+            f"FreeSerif{'Bold' if bold else ''}.otf",
+        ),
+        (
+            "timesbd.ttf"            if bold else "times.ttf",
+            f"LiberationSerif-{weight}.ttf",
+            f"FreeSerif{'Bold' if bold else ''}.otf",
+        ),
+        (
+            "arialbd.ttf"            if bold else "arial.ttf",
+            f"LiberationSans-{weight}.ttf",
+            f"FreeSans{'Bold' if bold else ''}.otf",
+        ),
+    ]
+
+    # Flatten: try every name in every directory
+    all_names = [name for group in name_groups for name in group]
+    return [d / n for d in search_dirs for n in dict.fromkeys(all_names)]  # dict.fromkeys preserves order + deduplicates
 
 def wrap_text(draw: ImageDraw.ImageDraw, text: str, font_obj: ImageFont.ImageFont, max_width: int) -> list[str]:
     words = text.split()
