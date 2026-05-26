@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from collections import Counter
 import argparse
 import html as html_lib
 import re
@@ -73,7 +74,7 @@ LANGUAGE_CONFIGS = {
         "contents_label": "Resumen",
         "notes_label": "Notas",
         "start_anchors": ("INTRODUCCION",),
-        "top_level_pattern": r"^(INTRODUCCIÓN|Capítulo\s+\d+|CONCLUSIÓN)$",
+        "top_level_pattern": r"^(INTRODUCCIÓN|CAP\S+\s+[A-Z]+|CONCLUSIÓN)$",
     },
 }
 
@@ -174,7 +175,7 @@ def build_id_map(content: etree._Element) -> dict[str, str]:
 
 def extract_toc_levels(content: etree._Element, id_map: dict[str, str]) -> dict[str, int]:
     levels: dict[str, int] = {}
-    for paragraph in content.xpath("./p"):
+    for paragraph in content.xpath(".//p"):
         if any(paragraph.xpath(f'.//a[@name="{anchor}"]') for anchor in START_ANCHORS):
             break
 
@@ -196,6 +197,15 @@ def extract_toc_levels(content: etree._Element, id_map: dict[str, str]) -> dict[
                 level = 2
 
             levels.setdefault(id_map[old_id], level)
+    count = Counter(levels.values())
+    if count.get(1) != 7:
+        raise ValueError(f"Should have 7 Level 1 entries, got {count.get(1)} {count} ")
+    if len(levels.keys()) != 75:
+        raise ValueError(f"Should have 75 entries {levels.keys()} {count}")
+
+    if count.get(2) < 10 or count.get(3)<30:
+        print("WARNING: TOC counts seems off")
+    print(f"Toc Levels: {count}")
     return levels
 
 
