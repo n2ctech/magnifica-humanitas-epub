@@ -19,15 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Scope note: this license covers the conversion code and build tooling in this
-repository only. The text of the encyclical "Magnifica Humanitas" is
-Copyright © Dicastery for Communication – Libreria Editrice Vaticana and is
-NOT covered by this license. The EPUB files in this repository are unofficial,
-non-commercial conversions of the text published by the Holy See at
-vatican.va, distributed free of charge for personal, educational and pastoral
-use, with full attribution. This project is not affiliated with or endorsed by
-the Holy See. Should the copyright holder object to this distribution, it will
-be removed immediately.

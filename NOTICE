@@ -1,0 +1,14 @@
+Scope of the MIT license in this repository
+===========================================
+
+The MIT license in the LICENSE file covers the conversion code and build
+tooling in this repository only.
+
+The text of the encyclical "Magnifica Humanitas" is Copyright © Dicastery
+for Communication – Libreria Editrice Vaticana and is NOT covered by that
+license. The EPUB files produced by this project are unofficial,
+non-commercial conversions of the text published by the Holy See at
+vatican.va, distributed free of charge for personal, educational and
+pastoral use, with full attribution. This project is not affiliated with
+or endorsed by the Holy See. Should the copyright holder object to this
+distribution, it will be removed immediately.
