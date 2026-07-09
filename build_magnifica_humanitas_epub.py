@@ -94,6 +94,25 @@ LANGUAGE_CONFIGS = {
         "start_anchors": ("Introdução",),
         "top_level_pattern": r"^(INTRODUÇÃO|CAPÍTULO [IVXLCDM]+|CONCLUSÃO)$",
     },
+    "pl": {
+        "source_url": "https://www.vatican.va/content/leo-xiv/pl/encyclicals/documents/20260515-magnifica-humanitas.html",
+        "source_html": Path("vatican-magnifica-humanitas.pl.source.html"),
+        "build_dir": Path("build/magnifica-humanitas-epub-pl"),
+        "output_epub": Path("Magnifica Humanitas - Pope Leo XIV (pl).epub"),
+        "title": "Magnifica Humanitas",
+        "subtitle": "O trosce o osobę ludzką w dobie sztucznej inteligencji",
+        "author": "Papież Leon XIV",
+        "publisher": "Stolica Apostolska",
+        "date": "2026-05-15",
+        "cover_kicker": "ENCYKLIKA",
+        "cover_date": "15 MAJA 2026",
+        "title_page_label": "ENCYKLIKA",
+        "title_page_nav": "Strona tytułowa",
+        "contents_label": "Treść",
+        "notes_label": "Notatki",
+        "start_anchors": ("WPROWADZENIE_",),
+        "top_level_pattern": r"^(WPROWADZENIE|ROZDZIAŁ [A-Z]+|ZAKOŃCZENIE)$",
+    },
 }
 
 SOURCE_URL = ""
