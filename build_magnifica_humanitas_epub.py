@@ -98,7 +98,7 @@ LANGUAGE_CONFIGS = {
         "source_url": "https://www.vatican.va/content/leo-xiv/pl/encyclicals/documents/20260515-magnifica-humanitas.html",
         "source_html": Path("vatican-magnifica-humanitas.pl.source.html"),
         "build_dir": Path("build/magnifica-humanitas-epub-pl"),
-        "output_epub": Path("Magnifica Humanitas - Pope Leo XIV (pl).epub"),
+        "output_epub": Path("Magnifica Humanitas - Papiez Leon XIV (pl).epub"),
         "title": "Magnifica Humanitas",
         "subtitle": "O trosce o osobę ludzką w dobie sztucznej inteligencji",
         "author": "Papież Leon XIV",
@@ -108,8 +108,8 @@ LANGUAGE_CONFIGS = {
         "cover_date": "15 MAJA 2026",
         "title_page_label": "ENCYKLIKA",
         "title_page_nav": "Strona tytułowa",
-        "contents_label": "Treść",
-        "notes_label": "Notatki",
+        "contents_label": "Spis treści",
+        "notes_label": "Przypisy",
         "start_anchors": ("WPROWADZENIE_",),
         "top_level_pattern": r"^(WPROWADZENIE|ROZDZIAŁ [A-Z]+|ZAKOŃCZENIE)$",
     },
@@ -334,6 +334,7 @@ def build_content_fragments(content: etree._Element, id_map: dict[str, str], toc
     body: list[str] = []
     notes: list[str] = []
     toc_entries: list[dict[str, str | int]] = []
+    note_ids: set[str] = set()
 
     for child in children[start_index:]:
         if not isinstance(child.tag, str):
@@ -349,6 +350,21 @@ def build_content_fragments(content: etree._Element, id_map: dict[str, str], toc
             for paragraph in footnote_paragraphs:
                 cleaned = sanitize_element(paragraph, id_map)
                 cleaned.set("class", "footnote")
+                # The Vatican source occasionally repeats an anchor name across two
+                # footnotes (e.g. "_ftn210" on both notes 210 and 219 of the pl page);
+                # re-derive colliding ids from the visible [n] marker to keep ids unique.
+                for element in cleaned.iter():
+                    element_id = element.get("id")
+                    if element_id is None:
+                        continue
+                    if element_id in note_ids:
+                        marker = re.match(r"\[(\d+)\]", normspace(cleaned.text_content()))
+                        candidate = f"ftn{marker.group(1)}" if marker else element_id
+                        while candidate in note_ids:
+                            candidate = f"{candidate}_dup"
+                        element.set("id", candidate)
+                        element_id = candidate
+                    note_ids.add(element_id)
                 if normspace(cleaned.text_content()):
                     notes.append(serialize_element(cleaned))
             continue

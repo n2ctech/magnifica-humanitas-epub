@@ -8,6 +8,7 @@ Sources:
 - French: https://www.vatican.va/content/leo-xiv/fr/encyclicals/documents/20260515-magnifica-humanitas.html
 - Italian: https://www.vatican.va/content/leo-xiv/it/encyclicals/documents/20260515-magnifica-humanitas.html
 - Portuguese: https://www.vatican.va/content/leo-xiv/pt/encyclicals/documents/20260515-magnifica-humanitas.html
+- Polish: https://www.vatican.va/content/leo-xiv/pl/encyclicals/documents/20260515-magnifica-humanitas.html
 
 The EPUBs include:
 
@@ -26,10 +27,12 @@ python3 build_magnifica_humanitas_epub.py --lang en
 python3 build_magnifica_humanitas_epub.py --lang fr
 python3 build_magnifica_humanitas_epub.py --lang it
 python3 build_magnifica_humanitas_epub.py --lang pt
+python3 build_magnifica_humanitas_epub.py --lang pl
 epubcheck "Magnifica Humanitas - Pope Leo XIV.epub"
 epubcheck "Magnifica Humanitas - Pape Leon XIV (fr).epub"
 epubcheck "Magnifica Humanitas - Papa Leone XIV (it).epub"
 epubcheck "Magnifica Humanitas - Papa Leao XIV (pt).epub"
+epubcheck "Magnifica Humanitas - Papiez Leon XIV (pl).epub"
 ```
 
-The converter is not bound to English text. It is currently configured for the English, French, Italian, and Portuguese Vatican pages; adding another language is mostly a matter of adding the Vatican URL and localized metadata.
+The converter is not bound to English text. It is currently configured for the English, French, Italian, Portuguese, and Polish Vatican pages; adding another language is mostly a matter of adding the Vatican URL and localized metadata.
