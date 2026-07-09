@@ -11,7 +11,7 @@ import zipfile
 from copy import deepcopy
 from pathlib import Path
 from urllib.request import Request, urlopen
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 
 from lxml import etree, html
 from PIL import Image, ImageDraw, ImageFont
@@ -55,6 +55,25 @@ LANGUAGE_CONFIGS = {
         "notes_label": "Notes",
         "start_anchors": ("INTRODUCTION",),
         "top_level_pattern": r"^(INTRODUCTION|Chapitre\s+\d+|CONCLUSION)$",
+    },
+    "it": {
+        "source_url": "https://www.vatican.va/content/leo-xiv/it/encyclicals/documents/20260515-magnifica-humanitas.html",
+        "source_html": Path("vatican-magnifica-humanitas.it.source.html"),
+        "build_dir": Path("build/magnifica-humanitas-epub-it"),
+        "output_epub": Path("Magnifica Humanitas - Papa Leone XIV (it).epub"),
+        "title": "Magnifica Humanitas",
+        "subtitle": "Sulla custodia della persona umana nel tempo dell'intelligenza artificiale",
+        "author": "Papa Leone XIV",
+        "publisher": "La Santa Sede",
+        "date": "2026-05-15",
+        "cover_kicker": "LETTERA ENCICLICA",
+        "cover_date": "15 MAGGIO 2026",
+        "title_page_label": "LETTERA ENCICLICA",
+        "title_page_nav": "Pagina del titolo",
+        "contents_label": "Indice",
+        "notes_label": "Note",
+        "start_anchors": ("INTRODUZIONE",),
+        "top_level_pattern": r"^(INTRODUZIONE|CAPITOLO\s+\d+|CONCLUSIONE)$",
     },
 }
 
@@ -219,7 +238,9 @@ def sanitize_element(element: etree._Element, id_map: dict[str, str]) -> etree._
             if href.startswith("#"):
                 node.set("href", f"#{id_map.get(href[1:], href[1:])}")
             else:
-                node.set("href", urljoin(SOURCE_URL, href).replace("http://www.vatican.va", "https://www.vatican.va"))
+                external_href = urljoin(SOURCE_URL, href).replace("http://www.vatican.va", "https://www.vatican.va")
+                parts = urlsplit(external_href)
+                node.set("href", urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, quote(parts.fragment, safe="/"))))
 
         if text_align_center and node.tag in {"p", "div"}:
             node.set("class", "center")
