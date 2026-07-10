@@ -1,0 +1,63 @@
+name: Build EPUB
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lang: [en, fr, de, es, it, pt, pl]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build EPUB
+        run: python build_magnifica_humanitas_epub.py --lang ${{ matrix.lang }}
+
+      - name: Validate with epubcheck
+        run: |
+          curl -sSL -o epubcheck.zip https://github.com/w3c/epubcheck/releases/download/v5.3.0/epubcheck-5.3.0.zip
+          unzip -q epubcheck.zip
+          for f in *.epub; do java -jar epubcheck-5.3.0/epubcheck.jar "$f"; done
+
+      - name: Upload EPUB artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: magnifica-humanitas-${{ matrix.lang }}
+          path: "*.epub"
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download built EPUBs
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Publish rolling latest release
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        with:
+          tag_name: latest
+          name: Latest build
+          files: artifacts/*.epub
