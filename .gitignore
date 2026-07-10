@@ -3,4 +3,5 @@
 build/
 vatican-magnifica-humanitas.source.html
 vatican-magnifica-humanitas.*.source.html
+*.epub
 *.DS_Store

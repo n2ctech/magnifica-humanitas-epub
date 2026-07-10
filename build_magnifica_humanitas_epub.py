@@ -11,7 +11,7 @@ import zipfile
 from copy import deepcopy
 from pathlib import Path
 from urllib.request import Request, urlopen
-from urllib.parse import quote, urljoin, urlsplit, urlunsplit
+from urllib.parse import quote, urljoin
 
 from lxml import etree, html
 from PIL import Image, ImageDraw, ImageFont
@@ -55,6 +55,44 @@ LANGUAGE_CONFIGS = {
         "notes_label": "Notes",
         "start_anchors": ("INTRODUCTION",),
         "top_level_pattern": r"^(INTRODUCTION|Chapitre\s+\d+|CONCLUSION)$",
+    },
+    "de": {
+        "source_url": "https://www.vatican.va/content/leo-xiv/de/encyclicals/documents/20260515-magnifica-humanitas.html",
+        "source_html": Path("vatican-magnifica-humanitas.de.source.html"),
+        "build_dir": Path("build/magnifica-humanitas-epub-de"),
+        "output_epub": Path("Magnifica Humanitas - Papst Leo XIV (de).epub"),
+        "title": "Magnifica Humanitas",
+        "subtitle": "Über die Bewahrung des Menschen im Zeitalter der künstlichen Intelligenz",
+        "author": "Papst Leo XIV.",
+        "publisher": "Der Heilige Stuhl",
+        "date": "2026-05-15",
+        "cover_kicker": "ENZYKLIKA",
+        "cover_date": "15. MAI 2026",
+        "title_page_label": "ENZYKLIKA",
+        "title_page_nav": "Titelseite",
+        "contents_label": "Inhalt",
+        "notes_label": "Anmerkungen",
+        "start_anchors": ("Einleitung",),
+        "top_level_pattern": r"^(Einleitung|\w+ Kapitel|Schluss)$",
+    },
+    "es": {
+        "source_url": "https://www.vatican.va/content/leo-xiv/es/encyclicals/documents/20260515-magnifica-humanitas.html",
+        "source_html": Path("vatican-magnifica-humanitas.es.source.html"),
+        "build_dir": Path("build/magnifica-humanitas-epub-es"),
+        "output_epub": Path("Magnifica Humanitas - Papa León XIV (es).epub"),
+        "title": "Magnifica Humanitas",
+        "subtitle": "Sobre la custodia de la persona humana en el tiempo de la inteligencia artificial",
+        "author": "Papa León XIV",
+        "publisher": "La Santa Sede",
+        "date": "2026-05-15",
+        "cover_kicker": "CARTA ENCÍCLICA",
+        "cover_date": "15 DE MAYO DE 2026",
+        "title_page_label": "CARTA ENCÍCLICA",
+        "title_page_nav": "Portada",
+        "contents_label": "Índice",
+        "notes_label": "Notas",
+        "start_anchors": ("INTRODUCCION",),
+        "top_level_pattern": r"^(INTRODUCCIÓN|CAPÍTULO \w+|CONCLUSIÓN)$",
     },
     "it": {
         "source_url": "https://www.vatican.va/content/leo-xiv/it/encyclicals/documents/20260515-magnifica-humanitas.html",
@@ -114,6 +152,12 @@ LANGUAGE_CONFIGS = {
         "top_level_pattern": r"^(WPROWADZENIE|ROZDZIAŁ [A-Z]+|ZAKOŃCZENIE)$",
     },
 }
+
+FOOTNOTE_PREDICATE = (
+    'contains(concat(" ", normalize-space(@class), " "), " MsoFootnoteText ")'
+    ' or .//a[starts-with(@name, "_ftn") and not(starts-with(@name, "_ftnref"))]'
+    ' or .//a[contains(@href, "_ftnref")]'
+)
 
 SOURCE_URL = ""
 SOURCE_HTML = Path()
@@ -276,9 +320,8 @@ def sanitize_element(element: etree._Element, id_map: dict[str, str]) -> etree._
             if href.startswith("#"):
                 node.set("href", f"#{id_map.get(href[1:], href[1:])}")
             else:
-                external_href = urljoin(SOURCE_URL, href).replace("http://www.vatican.va", "https://www.vatican.va")
-                parts = urlsplit(external_href)
-                node.set("href", urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, quote(parts.fragment, safe="/"))))
+                absolute = urljoin(SOURCE_URL, href).replace("http://www.vatican.va", "https://www.vatican.va")
+                node.set("href", quote(absolute, safe="%/:?#[]@!$&'()*+,;=~"))
 
         if text_align_center and node.tag in {"p", "div"}:
             node.set("class", "center")
@@ -341,15 +384,18 @@ def build_content_fragments(content: etree._Element, id_map: dict[str, str], toc
             continue
 
         footnote_paragraphs = []
-        if child.tag.lower() == "p" and child.xpath('.//a[starts-with(@name, "_ftn") and not(starts-with(@name, "_ftnref"))]'):
+        if child.tag.lower() == "p" and child.xpath(f"self::p[{FOOTNOTE_PREDICATE}]"):
             footnote_paragraphs.append(child)
-        footnote_paragraphs.extend(
-            child.xpath('.//p[contains(concat(" ", normalize-space(@class), " "), " MsoFootnoteText ") or .//a[starts-with(@name, "_ftn") and not(starts-with(@name, "_ftnref"))]]')
-        )
+        footnote_paragraphs.extend(child.xpath(f".//p[{FOOTNOTE_PREDICATE}]"))
         if footnote_paragraphs:
             for paragraph in footnote_paragraphs:
                 cleaned = sanitize_element(paragraph, id_map)
                 cleaned.set("class", "footnote")
+                if not cleaned.xpath(".//*[@id] | self::*[@id]"):
+                    backref = paragraph.xpath('.//a[contains(@href, "_ftnref")]/@href')
+                    match = re.search(r"_ftnref(\w+)", backref[0]) if backref else None
+                    if match:
+                        cleaned.set("id", f"_ftn{match.group(1)}")
                 # The Vatican source occasionally repeats an anchor name across two
                 # footnotes (e.g. "_ftn210" on both notes 210 and 219 of the pl page);
                 # re-derive colliding ids from the visible [n] marker to keep ids unique.
@@ -395,6 +441,8 @@ def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.Im
         "/System/Library/Fonts/Supplemental/Georgia Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Georgia.ttf",
         "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
         "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
     ]
     for candidate in candidates:
         path = Path(candidate)
