@@ -115,6 +115,12 @@ LANGUAGE_CONFIGS = {
     },
 }
 
+FOOTNOTE_PREDICATE = (
+    'contains(concat(" ", normalize-space(@class), " "), " MsoFootnoteText ")'
+    ' or .//a[starts-with(@name, "_ftn") and not(starts-with(@name, "_ftnref"))]'
+    ' or .//a[contains(@href, "_ftnref")]'
+)
+
 SOURCE_URL = ""
 SOURCE_HTML = Path()
 BUILD_DIR = Path()
@@ -340,15 +346,18 @@ def build_content_fragments(content: etree._Element, id_map: dict[str, str], toc
             continue
 
         footnote_paragraphs = []
-        if child.tag.lower() == "p" and child.xpath('.//a[starts-with(@name, "_ftn") and not(starts-with(@name, "_ftnref"))]'):
+        if child.tag.lower() == "p" and child.xpath(f"self::p[{FOOTNOTE_PREDICATE}]"):
             footnote_paragraphs.append(child)
-        footnote_paragraphs.extend(
-            child.xpath('.//p[contains(concat(" ", normalize-space(@class), " "), " MsoFootnoteText ") or .//a[starts-with(@name, "_ftn") and not(starts-with(@name, "_ftnref"))]]')
-        )
+        footnote_paragraphs.extend(child.xpath(f".//p[{FOOTNOTE_PREDICATE}]"))
         if footnote_paragraphs:
             for paragraph in footnote_paragraphs:
                 cleaned = sanitize_element(paragraph, id_map)
                 cleaned.set("class", "footnote")
+                if not cleaned.xpath(".//*[@id] | self::*[@id]"):
+                    backref = paragraph.xpath('.//a[contains(@href, "_ftnref")]/@href')
+                    match = re.search(r"_ftnref(\w+)", backref[0]) if backref else None
+                    if match:
+                        cleaned.set("id", f"_ftn{match.group(1)}")
                 # The Vatican source occasionally repeats an anchor name across two
                 # footnotes (e.g. "_ftn210" on both notes 210 and 219 of the pl page);
                 # re-derive colliding ids from the visible [n] marker to keep ids unique.
