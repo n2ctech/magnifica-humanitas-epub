@@ -11,7 +11,7 @@ import zipfile
 from copy import deepcopy
 from pathlib import Path
 from urllib.request import Request, urlopen
-from urllib.parse import quote, urljoin, urlsplit, urlunsplit
+from urllib.parse import quote, urljoin
 
 from lxml import etree, html
 from PIL import Image, ImageDraw, ImageFont
@@ -276,9 +276,8 @@ def sanitize_element(element: etree._Element, id_map: dict[str, str]) -> etree._
             if href.startswith("#"):
                 node.set("href", f"#{id_map.get(href[1:], href[1:])}")
             else:
-                external_href = urljoin(SOURCE_URL, href).replace("http://www.vatican.va", "https://www.vatican.va")
-                parts = urlsplit(external_href)
-                node.set("href", urlunsplit((parts.scheme, parts.netloc, parts.path, parts.query, quote(parts.fragment, safe="/"))))
+                absolute = urljoin(SOURCE_URL, href).replace("http://www.vatican.va", "https://www.vatican.va")
+                node.set("href", quote(absolute, safe="%/:?#[]@!$&'()*+,;=~"))
 
         if text_align_center and node.tag in {"p", "div"}:
             node.set("class", "center")
