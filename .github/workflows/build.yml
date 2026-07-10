@@ -6,6 +6,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Serialize runs per ref so two quick pushes to main cannot race on the
+# rolling "latest" release; do not cancel a release mid-update.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -25,6 +31,11 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      # Without a serif TrueType font PIL silently falls back to a tiny
+      # bitmap font and ships a degraded cover image.
+      - name: Install cover fonts
+        run: sudo apt-get update -q && sudo apt-get install -y -q fonts-liberation
 
       - name: Build EPUB
         run: python build_magnifica_humanitas_epub.py --lang ${{ matrix.lang }}
